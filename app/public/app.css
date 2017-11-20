@@ -233,16 +233,8 @@ html, body {
     cursor: pointer;
 }
 .btn-cancel {
-    background: #881111;
     top: 90px; left: 20px;
 }
 .btn-ok {
     top: 90px; left: 170px;
-    background: #118811;
-}
-.btn-cancel:hover {
-    background: #ff2222;
-}
-.btn-ok:hover {
-    background: #22ff22;
 }

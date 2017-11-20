@@ -68,7 +68,7 @@ async.series([
     function start_http_server(next_step) {
         console.log("\nHTTP server running...");
         require("./app/api.js")(wifi_manager, next_step);
-    },
+    }
 
 ], function(error) {
     if (error) {

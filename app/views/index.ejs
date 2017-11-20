@@ -2,7 +2,7 @@
 <html lang="en" ng-app="RpiWifiConfig">
 
 <head>
-    <title>Rpi Wifi Config</title>
+    <title>Gardenspace Configuration Wizard</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0, user-scalable=1">
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -16,8 +16,12 @@
 <body ng-controller = "AppController"
       ng-keyup      = "$event.keyCode == 27 ? change_selection(null) : ''">
 
+    <div>
+        <img src="/assets/img/logo.jpg" alt="Gardenspace Logo" />
+    </div>
+
     <div class = "page-header">
-        <i class = "fa fa-wifi"></i> Choose a Wifi Ap
+        <i class = "fa fa-wifi"></i> Choose a Wifi AP
         <a href = "#" ng-click = "rescan()" ng-class = "{ 'active': scan_running }">
             <i class = "fa fa-refresh"
                ng-class = "{ 'fa-spin': scan_running }"></i>
