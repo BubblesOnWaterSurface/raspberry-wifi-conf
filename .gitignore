@@ -2,3 +2,6 @@
 /npm-debug.log
 /app/public/external
 /.idea
+/log.txt
+/node.pid
+/package-lock.json
