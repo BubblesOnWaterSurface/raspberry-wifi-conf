@@ -44,11 +44,12 @@ module.exports = function() {
     // Define some globals
     var ifconfig_fields = {
         "hw_addr":         /HWaddr\s([^\s]+)/,
-        "inet_addr":       /inet addr:([^\s]+)/,
+        "inet_addr":       /inet\s([^\s]+)/,
     },  iwconfig_fields = {
         "ap_addr":         /Access Point:\s([^\s]+)/,
         "ap_ssid":         /ESSID:\"([^\"]+)\"/,
         "unassociated":    /(unassociated)\s+Nick/,
+	"mode":		   /Mode:([^\s]+)/,
     },  last_wifi_info = null;
 
     // TODO: rpi-config-ap hardcoded, should derive from a constant
@@ -61,6 +62,7 @@ module.exports = function() {
             ap_addr:      "<unknown_ap>",
             ap_ssid:      "<unknown_ssid>",
             unassociated: "<unknown>",
+	    mode:	  "<unknown>",
         };
 
         // Inner function which runs a given command and sets a bunch
@@ -88,6 +90,7 @@ module.exports = function() {
             },
         ], function(error) {
             last_wifi_info = output;
+		console.log(output);
             return callback(error, output);
         });
     },
@@ -115,6 +118,9 @@ module.exports = function() {
         // inet_addr - wifi is enabled!
         if (null        == _is_ap_enabled_sync(info) &&
             "<unknown>" != info["inet_addr"]         &&
+            "<unknown_ap>" != info["ap_addr"]        &&
+            "<unknown_ssid>" != info["ap_ssid"]      &&
+	    info["mode"].toLowerCase() == "managed"  &&
             "<unknown>" == info["unassociated"] ) {
             return info["inet_addr"];
         }
@@ -133,16 +139,11 @@ module.exports = function() {
         // If the current IP assigned to the chosen wireless interface is
         // the one specified for the access point in the config, we are in
         // access-point mode. 
-        // var is_ap  =
-        //     info["inet_addr"].toLowerCase() == info["ap_addr"].toLowerCase() &&
-        //     info["ap_ssid"] == config.access_point.ssid;
-        // NOTE: I used to detect this using the "ESSID" and "Access Point"
-        //       members from if/iwconfig.  These have been removed when the
-        //       interface is running as an access-point itself.  To cope with
-        //       this we are taking the simple way out, but at the cost that
-        //       if you join a wifi network with the same subnet, you could
-        //       collide and have the pi think that it is still in AP mode.
-        var is_ap = info["inet_addr"] == config.access_point.ip_addr;
+	// Hotspot mode is generally designated by iwconfig Mode set to Master, whereas general wifi is set to Managed
+        var is_ap  =
+            info["inet_addr"].toLowerCase() == config.access_point.ip_addr &&
+	    info["mode"].toLowerCase() == "master";
+	console.log(is_ap);
         return (is_ap) ? info["inet_addr"].toLowerCase() : null;
     },
 
@@ -223,7 +224,7 @@ module.exports = function() {
                 function restart_dhcp_service(next_step) {
                     exec("service isc-dhcp-server restart", function(error, stdout, stderr) {
                         if (!error) console.log("... dhcp server restarted!");
-                        else console.log("... dhcp server failed! - " + stdout);
+                        else console.log("... dhcp server failed! - " + stderr);
                         next_step();
                     });
                 },
@@ -236,6 +237,7 @@ module.exports = function() {
                     exec("service hostapd restart", function(error, stdout, stderr) {
                         //console.log(stdout);
                         if (!error) console.log("... hostapd restarted!");
+			else console.log("... hostapd restart failed! " + stderr);
                         next_step();
                     });
                 },
