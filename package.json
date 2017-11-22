@@ -28,6 +28,8 @@
     "body-parser": "^1.18.2",
     "ejs": "^1.0.0",
     "express": "^4.10.8",
-    "underscore": "^1.7.0"
+    "moment": "^2.19.2",
+    "underscore": "^1.7.0",
+    "wifi-control": "^2.0.1"
   }
 }
