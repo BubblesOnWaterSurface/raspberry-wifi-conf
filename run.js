@@ -32,14 +32,44 @@ async.series([
         });
     },
 
-	   // 4. Host HTTP server while functioning as AP, the "api.js"
-    	   //    file contains all the needed logic to get a basic express
-	   //    server up. It uses a small angular application which allows
-	   //    us to choose the wifi of our choosing.
-	   function start_http_server(next_step) {
-      		console.log("\nHTTP server running...");
-	        require("./app/api.js")(wifi_manager, next_step);
-	   }
+    // 2. Check if wifi is enabled / connected
+    function test_is_wifi_enabled(next_step) {
+        wifi_manager.is_wifi_enabled(function(error, result_ip) {
+            if (result_ip) {
+                console.log("\nWifi is enabled, and IP " + result_ip + " assigned");
+                var reconfigure = config.access_point.force_reconfigure || false;
+                if (reconfigure) {
+                    console.log("\nForce reconfigure enabled - try to enable access point");
+                } else {
+                    process.exit(0);
+                }
+            } else {
+                console.log("\nWifi is not enabled, Enabling AP for self-configure");
+            }
+            next_step(error);
+        });
+    },
+
+    // 3. Turn RPI into an access point
+    function enable_rpi_ap(next_step) {
+        wifi_manager.enable_ap_mode(config.access_point.ssid, function(error) {
+            if(error) {
+                console.log("... AP Enable ERROR: " + error);
+            } else {
+                console.log("... AP Enable Success!");
+            }
+            next_step(error);
+        });
+    },
+
+   // 4. Host HTTP server while functioning as AP, the "api.js"
+   //    file contains all the needed logic to get a basic express
+   //    server up. It uses a small angular application which allows
+   //    us to choose the wifi of our choosing.
+   function start_http_server(next_step) {
+	console.log("\nHTTP server running...");
+	require("./app/api.js")(wifi_manager, next_step);
+   }
 ], function(error) {
     if (error) {
         console.log("ERROR: " + error);
