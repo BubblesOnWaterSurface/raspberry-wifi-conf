@@ -190,7 +190,7 @@ module.exports = function() {
 
                 function update_interfaces(next_step) {
                     write_template_to_file(
-                        "./assets/etc/network/interfaces.d/ap.template",
+                        config.root_dir+"/assets/etc/network/interfaces.d/ap.template",
                         "/etc/network/interfaces.d/ap",
                         context, next_step);
                 },
@@ -199,7 +199,7 @@ module.exports = function() {
                 function update_dhcpd(next_step) {
                     // We must enable this to turn on the access point
                     write_template_to_file(
-                        "./assets/etc/dhcp/dhcpd.conf.template",
+                        config.root_dir+"/assets/etc/dhcp/dhcpd.conf.template",
                         "/etc/dhcp/dhcpd.conf",
                         context, next_step);
                 },
@@ -207,7 +207,7 @@ module.exports = function() {
                 // Enable the interface in the dhcp server
                 function update_dhcp_interface(next_step) {
                     write_template_to_file(
-                        "./assets/etc/default/isc-dhcp-server.template",
+                        config.root_dir+"/assets/etc/default/isc-dhcp-server.template",
                         "/etc/default/isc-dhcp-server",
                         context, next_step);
                 },
@@ -215,20 +215,20 @@ module.exports = function() {
                 // Enable hostapd.conf file
                 function update_hostapd_conf(next_step) {
                     write_template_to_file(
-                        "./assets/etc/hostapd.conf.template",
+                        config.root_dir+"/assets/etc/hostapd.conf.template",
                         "/etc/hostapd.conf",
                         context, next_step);
                 },
 
                 function update_hostapd_default(next_step) {
                     write_template_to_file(
-                        "./assets/etc/default/hostapd.template",
+                        config.root_dir+"/assets/etc/default/hostapd.template",
                         "/etc/default/hostapd",
                         context, next_step);
                 },
 
                 function start_ap(next_step) {
-                    exec("sudo bash start_ap.sh", function(error, stdout, stderr) {
+                    exec("sudo bash " + config.root_dir+"/start_ap.sh", function(error, stdout, stderr) {
                         console.log(stdout);
                         if (!error) console.log("... ap started!");
 			else console.log("... ap start failed! " + stderr);
@@ -242,6 +242,26 @@ module.exports = function() {
     // Disables AP mode
     _enable_wifi_mode = function(connection_info, callback) {
         _is_wifi_enabled(function(error, result_ip) {
+		check_connection = function(time){
+			if(!time) time=console.time();
+			
+			//Timeout set to 10sec
+			is_wifi_enabled(function(error,result_ip){
+				if(result_ip){
+			                console.log("\nWifi connection is enabled with IP: " + result_ip);
+					return callback(null);
+				} else {
+					if(error) console.log("Error checking wifi connection: " + error);
+
+					if(console.time - time > 60000){
+						return callback("Failed to connect");
+					} else {
+						setTimeout(check_connection(time), 5000);
+					}
+				}
+			});
+		}
+	    
             if (error) return callback(error);
 
             if (result_ip) {
@@ -253,41 +273,59 @@ module.exports = function() {
                 // Update /etc/wpa_supplicant/wpa_supplicant.conf with correct info...
                 function update_interfaces(next_step) {
                     write_template_to_file(
-                        "./assets/etc/wpa_supplicant/wpa_supplicant.conf.template",
+                        config.root_dir+"/assets/etc/wpa_supplicant/wpa_supplicant.conf.template",
                         "/etc/wpa_supplicant/wpa_supplicant.conf",
                         connection_info, next_step);
                 },
 
 		function disable_interface(next_step) {
-		    exec("iw dev " + config.ap_interface + " del", function(error,stdout, stderr){
+		    exec("sudo ifdown " + config.ap_interface, function(error,stdout, stderr){
 			if(!error)
 			    console.log("... " + config.ap_interface + " interface shutdown");
 			else
 			    console.log("Failed to shutdown " + config.ap_interface + " interface" + error + stderr);
-			//next_step();
+			next_step();
 		    });
-		}
+		},
 
-		//Don't bother to reboot network interfaces
-                //function reboot_network_interfaces(next_step) {
-                //    _reboot_wireless_network(config.wifi_interface, next_step);
-                //},
-            ], callback);
+                function reboot_network_interfaces(next_step) {
+                    _reboot_wireless_network(config.wifi_interface, next_step);
+                },
+            ], check_connection);
         });
 
     };
 
+    _disable_ap_mode = function() {
+        _is_wifi_enabled(function(error, result_ip) {	    
+            if (error) return callback(error);
+
+            if (result_ip) {
+                console.log("\nWifi connection is enabled with IP: " + result_ip);
+            }
+
+	exec("sudo ifdown " + config.ap_interface, function(error,stdout, stderr){
+		if(!error)
+		    console.log("... " + config.ap_interface + " interface shutdown");
+		else
+		    console.log("Failed to shutdown " + config.ap_interface + " interface" + error + stderr);
+	    });
+        });
+    };
+
     return {
-        get_wifi_info:           _get_interface_info,
+        get_wifi_info:           	_get_interface_info,
         reboot_wireless_network: _reboot_wireless_network,
 
-        is_wifi_enabled:         _is_wifi_enabled,
+        is_wifi_enabled:     	 _is_wifi_enabled,
         is_wifi_enabled_sync:    _is_wifi_enabled_sync,
 
-        is_ap_enabled:           _is_ap_enabled,
-        is_ap_enabled_sync:      _is_ap_enabled_sync,
+        is_ap_enabled:	         _is_ap_enabled,
+        is_ap_enabled_sync:     _is_ap_enabled_sync,
 
         enable_ap_mode:          _enable_ap_mode,
         enable_wifi_mode:        _enable_wifi_mode,
+
+	disable_ap_mode:	_disable_ap_mode
     };
 }

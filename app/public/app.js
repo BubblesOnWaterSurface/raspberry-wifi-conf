@@ -31,9 +31,6 @@ app.controller("AppController", ["PiManager", "$scope", "$location", "$timeout",
             return parseInt(cell.signal_strength);
         }
 
-        $scope.foo = function() { console.log("foo"); }
-        $scope.bar = function() { console.log("bar"); }
-
         // Scope function definitions
         $scope.rescan = function() {
             $scope.scan_results = [];

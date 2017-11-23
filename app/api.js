@@ -61,14 +61,13 @@ module.exports = function(wifi_manager, callback) {
             if (error) {
                 console.log("Enable Wifi ERROR: " + error);
                 console.log("Attempt to re-enable AP mode");
-                wifi_manager.enable_ap_mode(config.access_point.ssid, function(error) {
-                    console.log("... AP mode reset");
-                });
-                response.redirect("/");
-            }
+                log_error_send_success_with("Failed to connect to network", error, response);
+            } else {
             // Success! - exit
-            console.log("Wifi Enabled! - Exiting");
-            process.exit(0);
+	        console.log("Wifi Enabled! - Exiting");
+		wifi_manager.disable_ap_mode();
+                log_error_send_success_with("Success!", error, response);
+	   }
         });
     });
 

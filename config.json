@@ -21,5 +21,7 @@
 
     "server": {
         "port": 88
-    }
+    },
+
+    "root_dir": "/home/pi/raspberry-wifi-conf"
 }

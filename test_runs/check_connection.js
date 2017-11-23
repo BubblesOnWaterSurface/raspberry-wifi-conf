@@ -1,7 +1,8 @@
 var async               = require("async"),
-    wifi_manager        = require("./app/wifi_manager")(),
-    dependency_manager  = require("./app/dependency_manager")(),
-    config              = require("./config.json");
+    wifi_manager        = require("../app/wifi_manager")(),
+    dependency_manager  = require("../app/dependency_manager")(),
+    config              = require("../config.json");
+    fs		= require("fs");
 
 /*****************************************************************************\
     1. Check for dependencies
@@ -31,17 +32,29 @@ async.series([
         });
     },
 
-    // 2. Check if wifi is enabled / connected
-    function test_is_wifi_enabled(next_step) {
-        wifi_manager.is_wifi_enabled(function(error, result_ip) {
-            if (result_ip) {
-                console.log("\nWifi is enabled, and IP " + result_ip + " assigned");
-            } else {
-                console.log("\nWifi is not enabled");
-            }
-            next_step(error);
-        });
-    },
+	// 2. Check if wifi is enabled / connected
+	function test_is_wifi_enabled(next_step) {
+		if(fs.existsSync("/etc/wpa_supplicant/wpa_supplicant.conf")){
+			setTimeout(function(){
+				wifi_manager.is_wifi_enabled(function(error, result_ip) {
+				    if (result_ip) {
+					console.log("\nWifi is enabled, and IP " + result_ip + " assigned");
+					var reconfigure = config.access_point.force_reconfigure || false;
+					if (reconfigure) {
+					    console.log("\nForce reconfigure enabled - try to enable access point");
+					} else {
+					    //process.exit(0);
+					}
+				    } else {
+					console.log("\nWifi is not enabled, Enabling AP for self-configure");
+				    }
+				    next_step();
+				});
+			}, 10000);	
+		} else {
+			next_step(error);
+		}
+	},
 
 	function test_is_ap_enabled(next_step){
 		wifi_manager.is_ap_enabled(function(error, result) {
@@ -53,7 +66,6 @@ async.series([
 			next_step(error);
 		});
 	}	
-
 ], function(error) {
     if (error) {
         console.log("ERROR: " + error);
