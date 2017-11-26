@@ -30,6 +30,14 @@
     </div>
 
     <div class = "page-content">
+	<div class="alert check-element animate-show-hide alert-danger ng-cloak" role="alert" ng-show="!error_hide">
+		Failed to connect to Access Point
+	</div>
+
+	<div class="alert check-element animate-show-hide alert-success ng-cloak" role="alert" ng-show="!success_hide">
+		Connected to Wifi! 
+	</div>
+
         <div class = "scan-results-container">
 
             <div class = "scan-result"

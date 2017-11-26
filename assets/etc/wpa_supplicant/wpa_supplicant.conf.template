@@ -3,8 +3,8 @@ update_config=1
 country=GB
 
 network={
-	ssid "{{ wifi_ssid }}"
-	psk  "{{ wifi_passcode }}"
+	ssid="{{ wifi_ssid }}"
+	psk="{{ wifi_passcode }}"
 	scan_ssid=1
 	key_mgmt=WPA-PSK
 }

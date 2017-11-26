@@ -100,12 +100,14 @@ module.exports = function() {
             function down(next_step) {
                 exec("sudo ifdown " + wlan_iface, function(error, stdout, stderr) {
                     if (!error) console.log("ifdown " + wlan_iface + " successful...");
+		    else console.log("Failed to run ifdown: " + error + stderr);
                     next_step();
                 });
             },
             function up(next_step) {
                 exec("sudo ifup " + wlan_iface, function(error, stdout, stderr) {
                     if (!error) console.log("ifup " + wlan_iface + " successful...");
+		    else console.log("Failed to run ifup: " + error + stderr);
                     next_step();
                 });
             },
@@ -239,24 +241,28 @@ module.exports = function() {
         });
     },
 
-    // Disables AP mode
     _enable_wifi_mode = function(connection_info, callback) {
         _is_wifi_enabled(function(error, result_ip) {
-		check_connection = function(time){
-			if(!time) time=console.time();
-			
-			//Timeout set to 10sec
-			is_wifi_enabled(function(error,result_ip){
+		//Init vars for check connection. TODO: Clean up code!
+		count = 0;
+		timer = null;
+
+		check_connection = function(){
+			_is_wifi_enabled(function(error,result_ip){
 				if(result_ip){
 			                console.log("\nWifi connection is enabled with IP: " + result_ip);
+					clearInterval(timer);
 					return callback(null);
 				} else {
 					if(error) console.log("Error checking wifi connection: " + error);
-
-					if(console.time - time > 60000){
+					//Timeout set to 1min
+					if(count > 12){
+						clearInterval(timer);
 						return callback("Failed to connect");
 					} else {
-						setTimeout(check_connection(time), 5000);
+						count++;
+						console.log("Count: " + count);
+						if(!timer) timer = setInterval(check_connection, 5000, count);
 					}
 				}
 			});
@@ -266,7 +272,7 @@ module.exports = function() {
 
             if (result_ip) {
                 console.log("\nWifi connection is enabled with IP: " + result_ip);
-                // return callback(null);
+                return callback(null);
             }
 
             async.series([
@@ -278,22 +284,11 @@ module.exports = function() {
                         connection_info, next_step);
                 },
 
-		function disable_interface(next_step) {
-		    exec("sudo ifdown " + config.ap_interface, function(error,stdout, stderr){
-			if(!error)
-			    console.log("... " + config.ap_interface + " interface shutdown");
-			else
-			    console.log("Failed to shutdown " + config.ap_interface + " interface" + error + stderr);
-			next_step();
-		    });
-		},
-
                 function reboot_network_interfaces(next_step) {
                     _reboot_wireless_network(config.wifi_interface, next_step);
                 },
             ], check_connection);
         });
-
     };
 
     _disable_ap_mode = function() {

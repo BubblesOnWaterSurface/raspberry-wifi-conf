@@ -16,15 +16,17 @@ Dependencies:
 Description:
     Main application controller
 \******************************************************************************/
-app.controller("AppController", ["PiManager", "$scope", "$location", "$timeout",
+app.controller("AppController", ["PiManager", "$scope", "$location", "$timeout", "$window",
 
-    function(PiManager, $scope, $location, $timeout) {
+    function(PiManager, $scope, $location, $timeout, $window) {
         // Scope variable declaration
         $scope.scan_results              = [];
         $scope.selected_cell             = null;
         $scope.scan_running              = false;
         $scope.network_passcode          = "";
         $scope.show_passcode_entry_field = false;
+	$scope.error_hide = true;
+	$scope.success_hide=true;
 
         // Scope filter definitions
         $scope.orderScanResults = function(cell) {
@@ -52,6 +54,10 @@ app.controller("AppController", ["PiManager", "$scope", "$location", "$timeout",
         }
 
         $scope.submit_selection = function() {
+	    $scope.success_show=false;
+	    $scope.error_show=false;
+            $scope.show_passcode_entry_field = false;
+
             if (!$scope.selected_cell) return;
 
             var wifi_info = {
@@ -59,11 +65,21 @@ app.controller("AppController", ["PiManager", "$scope", "$location", "$timeout",
                 wifi_passcode:  $scope.network_passcode,
             };
 
+	    $scope.selected_cell = null;
+
             PiManager.enable_wifi(wifi_info).then(function(response) {
-                console.log(response.data);
+                //console.log(response);
                 if (response.data.status == "SUCCESS") {
                     console.log("AP Enabled - nothing left to do...");
-                }
+		    $scope.success_hide = false;
+		    $window.close();
+		    /*$timeout(function($window){
+			    $window.close();
+	            },3000, $window);*/
+                } else {
+                    console.log("Error enabling wifi: " + response.data.error);
+		    $scope.error_hide = false;
+		}
             });
         }
 
@@ -104,7 +120,7 @@ app.directive("rwcPasswordEntry", function($timeout) {
             submit:   "&",
         },
 
-        replace: true,          // Use provided template (as opposed to static
+        replace: true,  // Use provided template (as opposed to static
                                 // content that the modal scope might define in the
                                 // DOM)
         template: [

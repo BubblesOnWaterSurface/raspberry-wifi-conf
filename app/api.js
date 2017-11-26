@@ -61,14 +61,15 @@ module.exports = function(wifi_manager, callback) {
             if (error) {
                 console.log("Enable Wifi ERROR: " + error);
                 console.log("Attempt to re-enable AP mode");
-                log_error_send_success_with("Failed to connect to network", error, response);
+                log_error_send_success_with({val:"Failed to connect to network", error, response);
             } else {
             // Success! - exit
-	        console.log("Wifi Enabled! - Exiting");
+	        console.log("Wifi Enabled! - You can now close this window");
 		wifi_manager.disable_ap_mode();
-                log_error_send_success_with("Success!", error, response);
+                log_error_send_success_with({val: "Success!"}, error, response);
 	   }
         });
+	//log_error_send_success_with({val: "Success!"},null,response);
     });
 
     // Listen on our server
