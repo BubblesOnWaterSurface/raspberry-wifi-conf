@@ -1,5 +1,9 @@
 # raspberry-wifi-conf
 
+This is a modified version which supports both a Wifi connection as well as an Access Point at the same time.
+
+The dual wifi/AP system was taken from https://github.com/peebles/rpi3-wifi-station-ap-stretch.
+
 A Node application which makes connecting your RaspberryPi to your home wifi easier
 
 ## Why?
@@ -8,13 +12,11 @@ When unable to connect to a wifi network, this service will turn the RPI into a 
 
 Once configured, it prompts the PI to reboot with the appropriate wifi credentials. If this process fails, it immediately re-enables the PI as an AP which can be configurable again.
 
-This project broadly follows these [instructions](http://www.maketecheasier.com/set-up-raspberry-pi-as-wireless-access-point/) in setting up a RaspberryPi as a wireless AP.
-
 ## Requirements
 
-The NodeJS modules required are pretty much just `underscore`, `async`, and `express`. 
+The NodeJS modules required are pretty much just `underscore`, `async`, and `express`.
 
-The web application requires `angular` and `font-awesome` to render correctly. To make the deployment of this easy, one of the other requirements is `bower`.
+The web application requires `angular`, `bootstrap` and `font-awesome` to render correctly. To make the deployment of this easy, one of the other requirements is `bower`.
 
 If you do not have `bower` installed already, you can install it globally by running: `sudo npm install bower -g`.
 
@@ -29,30 +31,75 @@ $sudo npm run-script provision
 $sudo npm start
 ```
 
-Now lets check to see if you have `dhcpcd` installed on your os, if you do - we have one more small step.
+Copy/Edit the following files:
 
-Run `which dhcpcd` on your pi, if this returns any string (like `/sbin/dhcpcd`) then we need to add one line to the `dhcpcd.conf` file asking it to ignore the wireless interface that we are using for the AP.
+### /etc/network/interfaces.d/ap
 
-Add this to the very begenning of `/etc/dhcpcd.conf` (substitute your wifi interface for wlan0):
-```
-denyinterfaces wlan0
-```
+    allow-hotplug uap0
+    auto uap0
+    iface uap0 inet static
+        address 10.3.141.1
+        netmask 255.255.255.0
 
-If you are into quick one-liners you can do this to prepend the line to the file.
+### /etc/network/interfaces.d/station
 
-```
-echo "denyinterfaces wlan0" | cat - /etc/dhcpcd.conf > /tmp/out && sudo mv /tmp/out /etc/dhcpcd.conf
-```
+    allow-hotplug wlan0
+    iface wlan0 inet manual
+        wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
 
-## Setup the app as a service
+### Do not let DHCPCD manage wpa_supplicant!!
 
-There is a startup script included to make the server starting and stopping easier. Do remember that the application is assumed to be installed under `/home/pi/raspberry-wifi-conf`. Feel free to change this in the `assets/init.d/raspberry-wifi-conf` file.
+    rm -f /lib/dhcpcd/dhcpcd-hooks/10-wpa_supplicant
 
-```sh
-$sudo cp assets/init.d/raspberry-wifi-conf /etc/init.d/raspberry-wifi-conf 
-$sudo chmod +x /etc/init.d/raspberry-wifi-conf  
-$sudo update-rc.d raspberry-wifi-conf defaults
-```
+### Set up the client wifi (station) on wlan0.
+
+Create `/etc/wpa_supplicant/wpa_supplicant.conf`.  The contents depend on whether your home network is open, WEP or WPA.  It is
+probably WPA, and so should look like:
+
+    ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+    country=GB
+
+    network={
+	    ssid="_ST_SSID_"
+	    scan_ssid=1
+	    psk="_ST_PASSWORD_"
+	    key_mgmt=WPA-PSK
+    }
+
+Replace `_ST_SSID_` with your home network SSID and `_ST_PASSWORD_` with your wifi password (in clear text). Assuming you don't know, then just ignore this.
+
+## Restart DHCPCD
+
+    systemctl restart dhcpcd
+
+### Manually invoke the udev rule for the AP interface.
+
+Execute the command below.  This will also bring up the `uap0` interface.  It will wiggle the network, so you might be kicked off (esp. if you
+are logged into your Pi on wifi).  Just log back on.
+
+    /sbin/iw phy phy0 interface add uap0 type __ap
+
+### Install the packages you need for DNS, Access Point and Firewall rules.
+
+    apt-get update
+	apt-get install hostapd dnsmasq iptables-persistent
+
+### /etc/dnsmasq.conf
+
+    interface=lo,uap0
+    no-dhcp-interface=lo,wlan0
+    bind-interfaces
+    server=8.8.8.8
+    dhcp-range=10.3.141.50,10.3.141.255,12h
+
+### /etc/default/hostapd
+
+    DAEMON_CONF="/etc/hostapd/hostapd.conf"
+
+### Now restart the dns and hostapd services
+
+    systemctl restart dnsmasq
+    systemctl restart hostapd
 
 ### Gotchas
 
@@ -75,34 +122,28 @@ $sudo chmod 755 /usr/sbin/hostapd
 
 Note that the `wifi_driver_type` config variable is defaulted to the `nl80211` driver. However, if `iw list` fails on the app startup, it will automatically set the driver type of `rtl871xdrv`. Remember that even though you do not need to update the config / default value - you will need to use the updated `hostapd` binary bundled with this app.
 
-#### `dhcpcd` 
-
-Latest versions of raspbian use dhcpcd to manage network interfaces, since we are running our own dhcp server, if you have dhcpcd installed - make sure you deny the wifi interface as described in the installation section. 
-
-TODO: Handle this automatically.
-
 ## Usage
 
 This is approximately what occurs when we run this app:
 
-1. Check to see if we are connected to a wifi AP
+1. Check to see if we are connected to a wifi AP after 10 secs to give time for a connection to be established.
 2. If connected to a wifi, do nothing -> exit
-3. (if not wifi, then) Convert RPI to act as an AP (with a configurable SSID)
+3. (if not wifi, then) Allow RPI to act as an AP (with a configurable SSID)
 4. Host a lightweight HTTP server which allows for the user to connect and configure the RPIs wifi connection. The interfaces exposed are RESTy so other applications can similarly implement their own UIs around the data returned.
-5. Once the RPI is successfully configured, reset it to act as a wifi device (not AP anymore), and setup it's wifi network based on what the user selected.
+5. Test connection with wifi once the user has input the passcode, if connected, turn of AP.
 6. At this stage, the RPI is named, and has a valid wifi connection which it is now bound to.
 
 Typically, I have the following line in my `/etc/rc.local` file:
 ```
 cd /home/pi/raspberry-wifi-conf
-sudo /usr/bin/node server.js
+sudo /usr/bin/node run.js > log.txt 2>&1
 ```
 
 Note that this is run in a blocking fashion, in that this script will have to exit before we can proceed with others defined in `rc.local`. This way I can guarantee that other services which might rely on wifi will have said connection before being run. If this is not the case for you, and you just want this to run (if needed) in the background, then you can do:
 
 ```
 cd /home/pi/raspberry-wifi-conf
-sudo /usr/bin/node server.js < /dev/null &
+sudo /usr/bin/node run.js < /dev/null &
 ```
 
 ## User Interface
@@ -121,13 +162,12 @@ Step 3: Select your home (or whatever) network, punch in the wifi passcode if an
 
 ## Testing
 
-TODO
+The test_run folder contains the core functions seperated into individual elements. While this cannot be a substitute for proper testing, it is a stop-gap solution.
 
 ## TODO
 
-1. Automate the deployment of alternate `hostapd` application
+1. Open/close login window automatically
 2. Automate provisioning of the application dependencies
 3. Make the running of scripts cleaner and more easy to read
-4. ifup should never be allowed to fail... same w/ the "start" pieces of various services. Perhaps we need to tease the restart into stop and start and allow the stop to fail.
 5. Add tests
 6. Add travis ci / coveralls hook(s)
