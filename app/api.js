@@ -5,6 +5,8 @@ var path       = require("path"),
     bodyParser = require('body-parser'),
     config     = require("../config.json"),
     http_test  = config.http_test_only;
+    exec       = require("child_process").exec;
+
 
 // Helper function to log errors and send a generic status "SUCCESS"
 // message to the caller
@@ -61,12 +63,16 @@ module.exports = function(wifi_manager, callback) {
             if (error) {
                 console.log("Enable Wifi ERROR: " + error);
                 console.log("Attempt to re-enable AP mode");
-                log_error_send_success_with({val:"Failed to connect to network", error, response);
+                log_error_send_success_with({val:"Failed to connect to network"}, error, response);
             } else {
             // Success! - exit
 	        console.log("Wifi Enabled! - You can now close this window");
 		wifi_manager.disable_ap_mode();
                 log_error_send_success_with({val: "Success!"}, error, response);
+            //reboot
+		  exec("sudo reboot -f", function(error, stdout, stderr) {
+                  console.log("Reboot!");
+               });
 	   }
         });
 	//log_error_send_success_with({val: "Success!"},null,response);
