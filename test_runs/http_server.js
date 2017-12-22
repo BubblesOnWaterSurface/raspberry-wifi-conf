@@ -29,7 +29,7 @@ async.series([
 		wifi_manager.is_ap_enabled(function(error, result) {
 			if(error || result==null){
 				console.log("AP is not enabled: " + error);
-				process.exit(0);
+				process.exit(0); //不管在什么模式下，这个检测一直是 null
 			} else {
 				console.log("AP is enabled: " + result);
 			}
