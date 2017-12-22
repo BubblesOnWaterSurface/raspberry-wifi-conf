@@ -234,9 +234,11 @@ html, body {
 }
 .btn-cancel {
     top: 90px; left: 20px;
+    color: white;
 }
 .btn-ok {
     top: 90px; left: 170px;
+    color: white;
 }
 
 .animate-show-hide.ng-hide {
