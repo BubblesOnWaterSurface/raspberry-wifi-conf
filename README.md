@@ -147,7 +147,9 @@ sudo /usr/bin/node run.js > /dev/null &
 ```
 按照Incnas的做法，我这里出现点问题：
 在没有连接WIFI的情况下能够正常转换为AP模式，但httpserver没有启动。可直接在rc.local里面添加如下：
+```
 sudo /usr/bin/node /home/pi/raspberry-wifi-conf/test_runs/http_server.js > /dev/null &
+```
 
 ## User Interface
 
