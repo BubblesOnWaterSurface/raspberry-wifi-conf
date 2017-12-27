@@ -179,4 +179,5 @@ The test_run folder contains the core functions seperated into individual elemen
 
 ## 写在最后
 安装后运行一段时间发现树莓派无法访问了，PING不同，SSH也不能访问，有谁知道问题出在哪里请指教一下，谢谢了。netfun2000(at)foxmail.com
+
 Raspberry pi cannot access(both ping and ssh) after runing for a while(30min?).How to solve thins? please contact netfun2000(at)foxmail.com
