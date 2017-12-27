@@ -142,10 +142,6 @@ sudo /usr/bin/node run.js > log.txt 2>&1
 Note that this is run in a blocking fashion, in that this script will have to exit before we can proceed with others defined in `rc.local`. This way I can guarantee that other services which might rely on wifi will have said connection before being run. If this is not the case for you, and you just want this to run (if needed) in the background, then you can do:
 
 ```
-
-#写在最后
-安装后运行一段时间发现树莓派无法访问了，PING不同，SSH也不能访问，有谁知道问题出在哪里请指教一下，谢谢了。netfun2000(at)foxmail.com
-Raspberry pi cannot access(both ping and ssh) after runing for a while(30min?).How to solve thins? please contact netfun2000(at)foxmail.com
 cd /home/pi/raspberry-wifi-conf
 sudo /usr/bin/node run.js > /dev/null &
 ```
@@ -180,3 +176,7 @@ The test_run folder contains the core functions seperated into individual elemen
 3. Make the running of scripts cleaner and more easy to read
 5. Add tests
 6. Add travis ci / coveralls hook(s)
+
+##写在最后
+安装后运行一段时间发现树莓派无法访问了，PING不同，SSH也不能访问，有谁知道问题出在哪里请指教一下，谢谢了。netfun2000(at)foxmail.com
+Raspberry pi cannot access(both ping and ssh) after runing for a while(30min?).How to solve thins? please contact netfun2000(at)foxmail.com
